@@ -1,14 +1,9 @@
 import edu.models.Transac;
-import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,8 +12,9 @@ public class Main {
     public static void main(String[] args) {
         ExecutorService service = Executors.newCachedThreadPool();
         for(int i = 0; i < 2 ; i++) {
+            int finalI = i;
             service.submit(new Runnable() {
-                public void run() {
+                public synchronized void run() {
                     Transaction tx =  null;
 
                     try(Session session = HibernateUtil.getSessionFactory().openSession() ) {
@@ -41,36 +37,24 @@ public class Main {
 //                        obj.forEach(p -> System.out.println("T id: "+p[0]+" Amount: "+p[1]));
 
 
-
-
-
-
-
-
-
                         int rec_amount = 0;
                         int recipient;
-                        while (transac.getAmount() > 0) {
+                        int am = 100;
+                        while (am > 0) {
                             recipient = transac.getId();
                             while (recipient == transac.getId()) {
                                 recipient = getRandomDiceNumber();
                             }
-                            int am = getQuery("select id, amount from transaction", session);
-                            tx = session.beginTransaction();
-                            Query query = session.createQuery("update Transac set amount = :param where id = :idParam");
-                            query.setParameter("idParam", recipient);
-                            query.setParameter("param", (am - 10));
+                            am = getQuery("select id, amount from transaction", session, recipient);
+                            if (am == 0) {
+                                service.shutdownNow();
+                            }
+                            System.out.println("thread: " + finalI + " am: " + am + " recip: " + recipient + " cur_id: " + transac.getId() + " cur_am: " + transac.getAmount());
 
-                            int result = query.executeUpdate();
-//                            System.out.println("res: " + result + " id: " + transac.getId());
-                            tx.commit();
-                            transac.setAmount(transac.getAmount() + 10);
-
-
+//                            transac.setAmount(transac.getAmount() + 10);
+                            updateQuery(session, recipient, transac.getId(),  am);
                         }
-
                         session.close();
-//                        System.out.println("id:  " + transac.getId());
                     } catch (Exception e) {
                         if(tx != null && tx.isActive())
                             tx.rollback();
@@ -83,18 +67,36 @@ public class Main {
 
     public static int getRandomDiceNumber()
     {
-        return (int) (Math.random() * 2);
+        return (int) (Math.random() * 2) + 1;
     }
 
-    public static int getQuery (String string, Session session, int recip) {
+    public synchronized static void updateQuery(Session session, int recipient, int cur_id,  int am) {
+        Transaction tx = session.beginTransaction();
+        Query query = session.createQuery("update Transac set amount = :param where id = :idParam");
+        query.setParameter("idParam", recipient);
+        query.setParameter("param", (am - 10));
+        int result = query.executeUpdate();
+        tx.commit();
+
+        tx = session.beginTransaction();
+        Query query1 = session.createQuery("update Transac set amount = :param where id = :idParam");
+        query1.setParameter("idParam", cur_id);
+        query1.setParameter("param", (am + 10));
+        query1.executeUpdate();
+
+        tx.commit();
+
+    }
+
+    public synchronized static int getQuery (String string, Session session, int recip) {
         int am = 0;
+        String tmp = String.valueOf(recip);
         List<Object[]> obj = session.createSQLQuery(string).list();
         for (Object[] o : obj) {
             String i = o[0].toString();
-            if (i.equals("1")) {
+            if (i.equals(tmp)) {
                 String str = o[1].toString();
                 am = Integer.parseInt(str);
-                System.out.println("am: " + am);
             }
         }
         return am;
