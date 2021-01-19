@@ -4,6 +4,7 @@ import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
 
+import javax.persistence.LockModeType;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,7 +15,7 @@ public class Main {
         for(int i = 0; i < 2 ; i++) {
             int finalI = i;
             service.submit(new Runnable() {
-                public synchronized void run() {
+                public void run() {
                     Transaction tx =  null;
 
                     try(Session session = HibernateUtil.getSessionFactory().openSession() ) {
@@ -37,7 +38,6 @@ public class Main {
 //                        obj.forEach(p -> System.out.println("T id: "+p[0]+" Amount: "+p[1]));
 
 
-                        int rec_amount = 0;
                         int recipient;
                         int am = 100;
                         while (am > 0) {
@@ -51,8 +51,12 @@ public class Main {
                             }
                             System.out.println("thread: " + finalI + " am: " + am + " recip: " + recipient + " cur_id: " + transac.getId() + " cur_am: " + transac.getAmount());
 
-//                            transac.setAmount(transac.getAmount() + 10);
-                            updateQuery(session, recipient, transac.getId(),  am);
+                            tx = session.beginTransaction();
+                            transac.setAmount(transac.getAmount() + 10);
+                            session.update(transac);
+                            tx.commit();
+
+                            updateQuery(session, recipient, am);
                         }
                         session.close();
                     } catch (Exception e) {
@@ -70,20 +74,13 @@ public class Main {
         return (int) (Math.random() * 2) + 1;
     }
 
-    public synchronized static void updateQuery(Session session, int recipient, int cur_id,  int am) {
+    public synchronized static void updateQuery(Session session, int recipient, int am) {
         Transaction tx = session.beginTransaction();
         Query query = session.createQuery("update Transac set amount = :param where id = :idParam");
         query.setParameter("idParam", recipient);
         query.setParameter("param", (am - 10));
-        int result = query.executeUpdate();
-        tx.commit();
-
-        tx = session.beginTransaction();
-        Query query1 = session.createQuery("update Transac set amount = :param where id = :idParam");
-        query1.setParameter("idParam", cur_id);
-        query1.setParameter("param", (am + 10));
-        query1.executeUpdate();
-
+        query.executeUpdate();
+//        query.setLockMode(LockModeType.WRITE);
         tx.commit();
 
     }
