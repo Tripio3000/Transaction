@@ -32,23 +32,22 @@ public class InterruptableTasks {
 
         @Override
         public void run() {
-            Transaction tx =  null;
+            Transaction tx = null;
             Transac transac;
-            try(Session session = HibernateUtil.getSessionFactory().openSession() ) {
+            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                 tx = session.beginTransaction();
-                transac = new Transac(100);
+                transac = new Transac(200);
                 session.save(transac);
                 tx.commit();
                 session.close();
 
 
+                int recipient;
+                int am = 100;
+                while (!Thread.currentThread().isInterrupted() && am > 0) {
+                    if (!suspended) {
+                        System.out.println(transac.getId());
 
-            while (!Thread.currentThread().isInterrupted()) {
-                if (!suspended) {
-                    System.out.println(transac.getId());
-                    int recipient;
-                    int am = 100;
-                    while (am > 0) {
                         recipient = transac.getId();
                         while (recipient == transac.getId()) {
                             recipient = getRandomDiceNumber();
@@ -65,23 +64,22 @@ public class InterruptableTasks {
                         tx.commit();
 
                         updateQuery(session, recipient, am);
-                    }
 
 
-                } else {
-                    System.out.println("suspended");
-                    try {
-                        while (suspended) {
-                            synchronized (o) {
-                                o.wait();
+                    } else {
+                        System.out.println("suspended");
+                        try {
+                            while (suspended) {
+                                synchronized (o) {
+                                    o.wait();
+                                }
                             }
+                        } catch (InterruptedException e) {
                         }
-                    } catch (InterruptedException e) {
                     }
                 }
-            }
             } catch (Exception e) {
-                if(tx != null && tx.isActive())
+                if (tx != null && tx.isActive())
                     tx.rollback();
                 throw e;
             }
@@ -110,7 +108,7 @@ public class InterruptableTasks {
 //        threadPool.shutdownNow();
     }
 
-    public synchronized static int getQuery (String string, Session session, int recip) {
+    public synchronized static int getQuery(String string, Session session, int recip) {
         int am = 0;
         String tmp = String.valueOf(recip);
         List<Object[]> obj = session.createSQLQuery(string).list();
@@ -130,13 +128,12 @@ public class InterruptableTasks {
         query.setParameter("idParam", recipient);
         query.setParameter("param", (am - 10));
         query.executeUpdate();
-        query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
+//        query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
         tx.commit();
 
     }
 
-    public static int getRandomDiceNumber()
-    {
+    public static int getRandomDiceNumber() {
         return (int) (Math.random() * 2) + 1;
     }
 }
