@@ -7,6 +7,9 @@ import java.io.Serializable;
 @Table(name = "transaction")
 public class Transac implements Serializable {
 
+    @Version
+    private long version;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;

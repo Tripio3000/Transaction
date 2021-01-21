@@ -36,7 +36,7 @@ public class InterruptableTasks {
             Transac transac;
             try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                 tx = session.beginTransaction();
-                transac = new Transac(200);
+                transac = new Transac(100);
                 session.save(transac);
                 tx.commit();
                 session.close();
@@ -52,7 +52,18 @@ public class InterruptableTasks {
                         while (recipient == transac.getId()) {
                             recipient = getRandomDiceNumber();
                         }
-                        am = getQuery("select id, amount from transaction", session, recipient);
+//                        am = getQuery("select id, amount from transaction", session, recipient);
+                        String hql = "FROM Transac";
+                        Query query = session.createQuery(hql);
+//                        query.setParameter("paramName", recipient);
+                        query.setLockMode(LockModeType.READ);
+                        List<Transac> transacList = query.list();
+                        for (Transac tran : transacList) {
+                            am = transac.getAmount();
+                            System.out.println("am: " + am);
+                        }
+
+                        System.out.println("rec: " + recipient);
                         if (am == 0) {
                             this.suspend();
                         }
@@ -81,6 +92,8 @@ public class InterruptableTasks {
             } catch (Exception e) {
                 if (tx != null && tx.isActive())
                     tx.rollback();
+                System.out.println("Exception");
+                e.fillInStackTrace();
                 throw e;
             }
             System.out.println("Cancelled");
@@ -108,21 +121,32 @@ public class InterruptableTasks {
 //        threadPool.shutdownNow();
     }
 
-    public synchronized static int getQuery(String string, Session session, int recip) {
+    public static int getQuery(String string, Session session, int recip) {
         int am = 0;
-        String tmp = String.valueOf(recip);
-        List<Object[]> obj = session.createSQLQuery(string).list();
-        for (Object[] o : obj) {
-            String i = o[0].toString();
-            if (i.equals(tmp)) {
-                String str = o[1].toString();
-                am = Integer.parseInt(str);
-            }
+
+        String hql = "FROM Transac";
+        Query query = session.createQuery(hql);
+//        query.setParameter("paramName", recip);
+        query.setLockMode(LockModeType.READ);
+        List<Transac> tran = query.list();
+        for (Transac transac : tran) {
+            am = transac.getAmount();
+            System.out.println("am: " + am);
         }
+
+//        String tmp = String.valueOf(recip);
+//        List<Object[]> obj = session.createSQLQuery(string).list();
+//        for (Object[] o : obj) {
+//            String i = o[0].toString();
+//            if (i.equals(tmp)) {
+//                String str = o[1].toString();
+//                am = Integer.parseInt(str);
+//            }
+//        }
         return am;
     }
 
-    public synchronized static void updateQuery(Session session, int recipient, int am) {
+    public static void updateQuery(Session session, int recipient, int am) {
         Transaction tx = session.beginTransaction();
         Query query = session.createQuery("update Transac set amount = :param where id = :idParam");
         query.setParameter("idParam", recipient);
