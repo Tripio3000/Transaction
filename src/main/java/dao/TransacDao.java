@@ -31,37 +31,6 @@ public class TransacDao {
 
         return tr;
 
-
-//        Transac tr = em.createQuery("select t.amount from Transac t where t + :param")
-//                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-//                .setParameter("param", );
-
-
-
-
-//        Session session = null;
-//        Transac tr = null;
-//        try {
-//            session = HibernateUtil.getSessionFactory().openSession();
-//            tr =  (Transac) session.get(Transac.class, id);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        } finally {
-//            if (session != null && session.isOpen()) {
-//                session.close();
-//            }
-//        }
-//        return tr;
-
-
-
-//        Session session = HibernateUtil.getSessionFactory().openSession();
-//        Criteria criteria = session.createCriteria(Transac.class);
-//        criteria.add(Restrictions.eq("id", id));
-//        Transac priority = (Transac) criteria.uniqueResult();
-//        session.close();
-//        return priority;
-
     }
 
     public Transac findById(int id) {
@@ -72,9 +41,30 @@ public class TransacDao {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction tx1 = session.beginTransaction();
         session.save(Transac);
-//        session.lock(Transac, LockMode.PESSIMISTIC_WRITE);
         tx1.commit();
         session.close();
+    }
+
+    public void merge(int id, int delta) {
+
+        try {
+            EntityManager em = getEntityManager();
+            em.getTransaction().begin();
+            Transac tr = em.find(Transac.class, id, LockModeType.PESSIMISTIC_WRITE);
+            tr.setAmount(tr.getAmount() + delta);
+
+//            System.out.println("inside dao1, id: " + tr.getId() + " am: " + tr.getAmount());
+//            em.merge(tr);
+//            em.refresh(tr, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+//            System.out.println("inside dao, id: " + tr.getId() + " am: " + tr.getAmount());
+
+            em.getTransaction().commit();
+            em.close();
+
+        } catch (Exception e) {
+            System.out.println("Exeption!!");
+            e.printStackTrace();
+        }
     }
 
     public void update(int id) {
@@ -84,18 +74,18 @@ public class TransacDao {
 
 //            int perosnId = 2;
             Transac tr = session.get(Transac.class, id);
-            if(tr != null){
+            if (tr != null) {
                 tx = session.beginTransaction();
                 tr.setAmount(tr.getAmount() + 10);
                 session.update(tr);
                 tx.commit();
-            }else{
-                System.out.println("Person details not found with ID: "+ id);
+            } else {
+                System.out.println("Person details not found with ID: " + id);
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println("Exeption!!");
             e.printStackTrace();
-            if(tx != null){
+            if (tx != null) {
                 tx.rollback();
             }
         }

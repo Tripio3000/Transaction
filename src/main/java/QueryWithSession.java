@@ -26,27 +26,43 @@ public class QueryWithSession {
     public static void main(String[] args) {
 
         ExecutorService executorService = Executors.newCachedThreadPool();
-        for (int i = 0; i < 3; i++) {
+        for (int i = 1; i < 6; i++) {
+            int finalI = i;
             executorService.submit(new Runnable() {
                 @Override
                 public void run() {
                     Transac tr = new Transac();
-                    System.out.println("qwerty");
                     TransacDao transacDao = new TransacDao();
 
-//                    transacDao.update(2);
+                    while (true) {
+                        tr = transacDao.getTransacById(finalI);
+                        if (tr.getAmount() <= 0) {
+                            break;
+                        }
+                        int rec = finalI;
+                        while (rec == finalI) {
+                            rec = getRandomDiceNumber();
+                        }
+                        transacDao.merge(finalI, -10);
+                        transacDao.merge(rec, 10);
+                        System.out.println("Thread: " + finalI + " id: " + tr.getId() + " am: " + tr.getAmount());
 
-                    tr = transacDao.getTransacById(2);
-                    System.out.println("id: " + tr.getId() + " am: " + tr.getAmount());
+                    }
+//                    tr = transacDao.getTransacById(4);
+                    executorService.shutdown();
                 }
             });
 
         }
 
-//        System.out.println("smth");
 
 //        Transac tr = new Transac();
 //        TransacDao transacDao = new TransacDao();
+//
+//        transacDao.merge(1);
+//        tr = transacDao.getTransacById(1);
+//        System.out.println("id: " + tr.getId() + " am: " + tr.getAmount());
+
 //
 //
 //        Transac transac1 = new Transac(200);
@@ -56,12 +72,9 @@ public class QueryWithSession {
 //        transacDao.save(transac2);
 
 //        tr = transacDao.getTransacById(2);
-//        System.out.println("id: " + tr.getId() + " am: " + tr.getAmount());
-
     }
 
-    public static int getRandomDiceNumber()
-    {
+    public static int getRandomDiceNumber() {
         return (int) (Math.random() * 5) + 1;
     }
 }
