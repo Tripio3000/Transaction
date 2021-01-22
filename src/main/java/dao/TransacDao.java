@@ -53,11 +53,6 @@ public class TransacDao {
             Transac tr = em.find(Transac.class, id, LockModeType.PESSIMISTIC_WRITE);
             tr.setAmount(tr.getAmount() + delta);
 
-//            System.out.println("inside dao1, id: " + tr.getId() + " am: " + tr.getAmount());
-//            em.merge(tr);
-//            em.refresh(tr, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
-//            System.out.println("inside dao, id: " + tr.getId() + " am: " + tr.getAmount());
-
             em.getTransaction().commit();
             em.close();
 
@@ -89,12 +84,6 @@ public class TransacDao {
                 tx.rollback();
             }
         }
-
-//        Session session = HibernateUtil.getSessionFactory().openSession();
-//        Transaction tx1 = session.beginTransaction();
-//        session.update(Transac);
-//        tx1.commit();
-//        session.close();
     }
 
     public void delete(Transac Transac) {

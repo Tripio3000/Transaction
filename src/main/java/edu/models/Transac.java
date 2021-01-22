@@ -34,4 +34,13 @@ public class Transac implements Serializable {
     public void setAmount(int amount) {
         this.amount = amount;
     }
+
+    @Override
+    public String toString() {
+        return "Transac{" +
+                "version=" + version +
+                ", id=" + id +
+                ", amount=" + amount +
+                '}';
+    }
 }
