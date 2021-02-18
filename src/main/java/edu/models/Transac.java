@@ -11,6 +11,14 @@ public class Transac implements Serializable {
     @Version
     private long version;
 
+    public void setVersion(long version) {
+        this.version = version;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;

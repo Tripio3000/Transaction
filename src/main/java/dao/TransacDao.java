@@ -33,16 +33,16 @@ public class TransacDao {
 
     }
 
-    public Transac findById(int id) {
-        return HibernateUtil.getSessionFactory().openSession().get(Transac.class, id);
-    }
-
     public void save(Transac Transac) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction tx1 = session.beginTransaction();
         session.save(Transac);
         tx1.commit();
         session.close();
+    }
+
+    public Transac findById(int id) {
+        return HibernateUtil.getSessionFactory().openSession().get(Transac.class, id);
     }
 
     public void merge(int id, int delta) {
